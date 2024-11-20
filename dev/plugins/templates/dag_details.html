@@ -1,0 +1,134 @@
+{% extends "appbuilder/base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
+
+    <!-- Basic DAG Information -->
+    <div class="panel panel-primary">
+        <div class="panel-heading">
+            <h3 class="panel-title">Basic Information</h3>
+        </div>
+        <div class="panel-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <dl class="dl-horizontal">
+                        <dt>DAG ID</dt>
+                        <dd>{{ dag_details.dag_id }}</dd>
+
+                        <dt>Owner</dt>
+                        <dd>{{ dag_details.owner }}</dd>
+
+                        <dt>Schedule Interval</dt>
+                        <dd>{{ dag_details.schedule_interval }}</dd>
+
+                        <dt>Start Date</dt>
+                        <dd>{{ dag_details.start_date }}</dd>
+                    </dl>
+                </div>
+                <div class="col-md-6">
+                    <dl class="dl-horizontal">
+                        <dt>File Location</dt>
+                        <dd>{{ dag_details.file_location }}</dd>
+
+                        <dt>Tags</dt>
+                        <dd>
+                            {% for tag in dag_details.tags %}
+                            <span class="label label-info">{{ tag }}</span>
+                            {% endfor %}
+                        </dd>
+
+                        <dt>Description</dt>
+                        <dd>{{ dag_details.description }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration -->
+    <div class="panel panel-info">
+        <div class="panel-heading">
+            <h3 class="panel-title">Configuration</h3>
+        </div>
+        <div class="panel-body">
+            <dl class="dl-horizontal">
+                <dt>Catchup</dt>
+                <dd>{{ dag_details.catchup }}</dd>
+
+                <dt>Max Active Runs</dt>
+                <dd>{{ dag_details.max_active_runs }}</dd>
+
+                <dt>Concurrency</dt>
+                <dd>{{ dag_details.concurrency }}</dd>
+            </dl>
+        </div>
+    </div>
+
+    <!-- Default Arguments -->
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h3 class="panel-title">
+                <a data-toggle="collapse" href="#defaultArgsCollapse">
+                    Default Arguments
+                </a>
+            </h3>
+        </div>
+        <div id="defaultArgsCollapse" class="panel-collapse collapse in">
+            <div class="panel-body">
+                <pre>{{ dag_details.default_args | tojson(indent=2) }}</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tasks -->
+    <div class="panel panel-success">
+        <div class="panel-heading">
+            <h3 class="panel-title">Tasks</h3>
+        </div>
+        <div class="panel-body">
+            <table class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th>Task ID</th>
+                        <th>Type</th>
+                        <th>Retries</th>
+                        <th>Retry Delay</th>
+                        <th>Upstream Tasks</th>
+                        <th>Downstream Tasks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in dag_details.tasks %}
+                    <tr>
+                        <td>{{ task.task_id }}</td>
+                        <td>{{ task.task_type }}</td>
+                        <td>{{ task.retries }}</td>
+                        <td>{{ task.retry_delay }}</td>
+                        <td>
+                            {% for upstream in task.upstream_task_ids %}
+                            <span class="label label-default">{{ upstream }}</span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% for downstream in task.downstream_task_ids %}
+                            <span class="label label-default">{{ downstream }}</span>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="row">
+        <div class="col-sm-12">
+            <a href="{{ url_for('DagDetailsView.list') }}" class="btn btn-default">
+                <i class="fa fa-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

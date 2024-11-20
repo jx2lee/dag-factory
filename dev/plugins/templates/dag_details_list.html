@@ -1,0 +1,42 @@
+{% extends "appbuilder/base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
+    <div class="row">
+        <div class="col-sm-12">
+            <table class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th>DAG ID</th>
+                        <th>Description</th>
+                        <th>Owner</th>
+                        <th>Schedule</th>
+                        <th>Tags</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dag_id, dag_info in dags.items() %}
+                    <tr>
+                        <td>{{ dag_info.display_data.dag_id }}</td>
+                        <td>{{ dag_info.display_data.description }}</td>
+                        <td>{{ dag_info.display_data.owner }}</td>
+                        <td>{{ dag_info.display_data.schedule_interval }}</td>
+                        <td>
+                            {% for tag in dag_info.display_data.tags %}
+                            <span class="label label-info">{{ tag }}</span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('DagDetailsView.details', dag_id=dag_info.display_data.dag_id) }}"
+                               class="btn btn-sm btn-primary">View Details</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
