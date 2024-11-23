@@ -1,51 +1,65 @@
+from __future__ import annotations
+
 from airflow.listeners import hookimpl
-from airflow.models import DagRun
+from airflow.models.dagrun import DagRun
+from airflow.models.taskinstance import TaskInstance
 from airflow.utils.log.logging_mixin import LoggingMixin
-from airflow.utils.state import State
+from airflow.utils.state import TaskInstanceState
 
 from dagfactory import telemetry
 
 log = LoggingMixin().log
 
 
-def _get_tis_metric(dag_run):
-    # Fetch all task instances for the given DagRun
-    tis = []  # TODO: Fix dag_run.get_task_instances()
+class EventStatus:
+    SUCCESS = "success"
+    FAILED = "failed"
 
-    ti_metric = {
-        "ti": len(tis),
-        "ti_success": 0,
-        "ti_failed": 0,
-        "ti_skipped": 0,
-        "ti_upstream_failed": 0,
-    }
 
-    # Count the different states of task instances
-    for ti in tis:
-        if ti.state == State.SUCCESS:
-            ti_metric["ti_success"] += 1
-        elif ti.state == State.FAILED:
-            ti_metric["ti_failed"] += 1
-        elif ti.state == State.SKIPPED:
-            ti_metric["ti_skipped"] += 1
-        elif ti.state == State.UPSTREAM_FAILED:
-            ti_metric["ti_upstream_failed"] += 1
-
-    return ti_metric
+class EventType:
+    DAG_RUN = "dag_run"
+    TASK_INSTANCE = "task_instance"
 
 
 @hookimpl
 def on_dag_run_success(dag_run: DagRun, msg: str):
-    # Collect additional telemetry metrics for the DagRun
     additional_telemetry_metrics = {
         "dag_hash": dag_run.dag_hash,
-        "dr_success": 1,
-        **_get_tis_metric(dag_run),  # Add task instance metrics
+        "status": EventStatus.SUCCESS,
     }
 
-    log.info("========================================")
-    log.info("%s", additional_telemetry_metrics)
-    log.info("========================================")
+    telemetry.emit_usage_metrics_if_enabled(EventType.DAG_RUN, additional_telemetry_metrics)
 
-    # Emit usage metrics if telemetry is enabled
-    telemetry.emit_usage_metrics_if_enabled("dagrun", additional_telemetry_metrics)
+
+@hookimpl
+def on_dag_run_failed(dag_run: DagRun, msg: str):
+    additional_telemetry_metrics = {
+        "dag_hash": dag_run.dag_hash,
+        "status": EventStatus.FAILED,
+    }
+
+    telemetry.emit_usage_metrics_if_enabled(EventType.DAG_RUN, additional_telemetry_metrics)
+
+
+@hookimpl
+def on_task_instance_success(previous_state: TaskInstanceState, task_instance: TaskInstance, session):
+    additional_telemetry_metrics = {
+        "dag_hash": task_instance.dag_run.dag_hash,
+        "status": EventStatus.SUCCESS,
+        "operator": task_instance.operator,
+    }
+
+    telemetry.emit_usage_metrics_if_enabled(EventType.TASK_INSTANCE, additional_telemetry_metrics)
+
+
+@hookimpl
+def on_task_instance_failed(
+    previous_state: TaskInstanceState, task_instance: TaskInstance, error: None | str | BaseException, session
+):
+    additional_telemetry_metrics = {
+        "dag_hash": task_instance.dag_run.dag_hash,
+        "status": EventStatus.FAILED,
+        "operator": task_instance.operator,
+    }
+
+    telemetry.emit_usage_metrics_if_enabled(EventType.TASK_INSTANCE, additional_telemetry_metrics)
